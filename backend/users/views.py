@@ -1,7 +1,10 @@
 from django.contrib.auth import get_user_model
 from rest_framework import status, views, response
+from rest_framework.permissions import AllowAny
+
 
 class CreateSampleUsers(views.APIView):
+    permission_classes = [AllowAny]
     
     def get(self, request, format=None):
         User = get_user_model()

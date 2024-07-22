@@ -10,7 +10,7 @@ from . import models, serializers
 
 
 @api_view(['GET'])
-def reviews_list(self, request, *args, **kwargs):
+def reviews_list(request):
     '''
         this class is just used to check list of review to see changes made by different methods I'm using
     '''
