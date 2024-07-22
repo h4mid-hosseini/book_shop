@@ -6,34 +6,54 @@ from . import models, serializers
 
 
 
-class BookListAPIView(views.APIView):
-    serializer_class = serializers.BooksSerializer
-    
-    def get(self, request, *args, **kwargs):
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT * FROM books_books")
-            rows = cursor.fetchall()
 
-        reviews = [{'id': row[0], 'title': row[1], 'author': row[2], 'genre': row[3]} for row in rows]
 
-        return response.Response(reviews, status=status.HTTP_200_OK)
-    
+
+@api_view(['GET'])
+def reviews_list(self, request, *args, **kwargs):
+    '''
+        this class is just used to check list of review to see changes made by different methods I'm using
+    '''
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM books_books")
+        rows = cursor.fetchall()
+
+    reviews = [
+        {
+            'id': row[0],
+            'title': row[1],
+            'author': row[2],
+            'genre': row[3]
+        } 
+        for row in rows
+        ]
+
+    return response.Response(reviews, status=status.HTTP_200_OK)
+
 
 
 
 @api_view(['GET'])
 def get_all_reviews(request):
     """
-    this method returns all reviews that user made yet
+        this method returns all reviews that user made yet
     """
 
     user_id = request.user.id
-    
+    print('user id: ', user_id)
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM books_reviews WHERE user_id = %s", [user_id])
         rows = cursor.fetchall()
 
-    reviews = [{'id': row[0], 'book': row[1], 'user': row[2], 'rating': row[3]} for row in rows]
+    reviews = [
+        {
+            'id': row[0],
+            'rating': row[1],
+            'book': row[2],
+            'user': row[3]
+        } 
+        for row in rows
+        ]
 
     return response.Response(reviews, status=status.HTTP_200_OK)
 
@@ -43,15 +63,15 @@ def get_all_reviews(request):
 @api_view(['POST'])
 def create_review(request):
     """
-    with user can add new review to books 
-    hevncre is what we expect to be sent for creating new review:
-    - book_id:type(int)
-    - rating:type(int)
+        with user can add new review to books 
+        hevncre is what we expect to be sent for creating new review:
+        - book_id:type(int)
+        - rating:type(int)
 
-    duplicated review is not allowed as we defined in models
+        duplicated review is not allowed as we defined in models
     """
 
-    serializer = serializers.ReviewSerializer(data=request.data)
+    serializer = serializers.ReviewsSerializer(data=request.data)
 
     if serializer.is_valid():
         book_id = serializer.validated_data['book_id']
@@ -59,7 +79,7 @@ def create_review(request):
         user_id = request.user.id
 
         query = """
-        INSERT INTO reviews (book_id, user_id, rating)
+        INSERT INTO books_reviews (book_id, user_id, rating)
         VALUES (%s, %s, %s);
         """
         
@@ -80,10 +100,10 @@ def create_review(request):
 @api_view(['PATCH'])
 def update_review(request):
     """
-    here user can update review.
-    user should send these:
-    - review_id : type(int)
-    - rating: type(int)
+        here user can update review.
+        user should send these:
+        - review_id : type(int)
+        - rating: type(int)
     """
 
     serializer = serializers.UpdateReviewSerializer(data=request.data)
@@ -94,7 +114,7 @@ def update_review(request):
         user_id = request.user.id
         
         query = """
-        UPDATE reviews
+        UPDATE books_reviews
         SET rating = %s
         WHERE id = %s AND user_id = %s;
         """
@@ -116,9 +136,9 @@ def update_review(request):
 @api_view(['DELETE'])
 def delete_review(request):
     """
-    this method can delete user reviews.
-    user should only send the review ID to delete it.
-    if the review does not belong to user or did not found, 404 will be returned.
+        this method can delete user reviews.
+        user should only send the review ID to delete it.
+        if the review does not belong to user or did not found, 404 will be returned.
     """
     
     serializer = serializers.DeleteReviewSerializer(data=request.data)
@@ -128,7 +148,7 @@ def delete_review(request):
         user_id = request.user.id
 
         query = """
-        DELETE FROM reviews
+        DELETE FROM books_reviews
         WHERE id = %s AND user_id = %s;
         """
         
@@ -139,6 +159,7 @@ def delete_review(request):
             return response.Response({'error': 'Review not found'}, status=status.HTTP_404_NOT_FOUND)
         
         return response.Response({'status': 'Review deleted'}, status=status.HTTP_204_NO_CONTENT)
+    
     else:
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -146,5 +167,120 @@ def delete_review(request):
 
 
 @api_view(['GET'])
+def books_filtered_by_genre(request):
+    """
+        this function return books based on the genre user specified
+        user should put genre in url like below:
+        - /api/books/Advanture
+        above url return books in Advanture genre
+    """
+
+    genre = request.GET.get('genre', None)
+
+    if genre != None:
+        query = """
+        SELECT * FROM books_books
+        WHERE genre = %s;
+        """
+        
+        with connection.cursor() as cursor:
+            cursor.execute(query, [genre])
+            rows = cursor.fetchall()
+
+        reviews = [
+            {
+                'id': row[0],
+                'title': row[1],
+                'author': row[2],
+                'genre': row[3]
+            } 
+            for row in rows
+            ]
+
+        return response.Response(reviews, status=status.HTTP_200_OK)
+    
+    return response.Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+# @api_view(['GET'])
+# def suggest_book_based_on_reviews(request):
+
+#     review = models.Reviews.objects.filter(user=request.user).order_by('-rating')
+#     if review != []:
+#         most_loved_genre = review[0]
+#         genre = most_loved_genre.book.genre
+#         books = models.Books.objects.filter(genre=genre)
+#         data = serializers.BooksSerializer(books, many=True)
+
+#         return response.Response(data.data, status=status.HTTP_200_OK)
+    
+
+#     return response.Response({'info':'there is not enough data about you'}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+
+@api_view(['GET'])
 def suggest_book_based_on_reviews(request):
-    pass
+    '''
+        this view retuns list of books user may like based on review history
+    '''
+    user_id = request.user.id
+    
+    review_query = """
+    SELECT book_id
+    FROM books_reviews
+    WHERE user_id = %s
+    ORDER BY rating DESC
+    LIMIT 1;
+    """
+    
+    with connection.cursor() as cursor:
+        cursor.execute(review_query, [user_id])
+        row = cursor.fetchone()
+        print(row)
+    
+    if row:
+        book_id = row[0]
+        
+        genre_query = """
+        SELECT genre
+        FROM books_books
+        WHERE id = %s;
+        """
+        
+        with connection.cursor() as cursor:
+            cursor.execute(genre_query, [book_id])
+            row = cursor.fetchone()
+        
+        if row:
+            genre = row[0]
+            
+            books_query = """
+            SELECT * 
+            FROM books_books
+            WHERE genre = %s;
+            """
+            
+            with connection.cursor() as cursor:
+                cursor.execute(books_query, [genre])
+                books = cursor.fetchall()
+            
+            if books:
+
+                books_data = [
+                    {
+                        'id': book[0],
+                        'title': book[1],
+                        'author': book[2],
+                        'genre': book[3],
+                    }
+                    for book in books
+                ]
+                
+                return response.Response(books_data, status=status.HTTP_200_OK)
+    
+    return response.Response({'info': 'There is not enough data about you'}, status=status.HTTP_204_NO_CONTENT)

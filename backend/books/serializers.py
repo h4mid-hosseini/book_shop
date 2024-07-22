@@ -9,9 +9,11 @@ class BooksSerializer(serializers.ModelSerializer):
 
 
 
+
 class ReviewsSerializer(serializers.Serializer):
     book_id = serializers.IntegerField()
     rating = serializers.IntegerField()
+
 
 
 
@@ -19,6 +21,25 @@ class DeleteReviewSerializer(serializers.Serializer):
     review_id = serializers.IntegerField()
 
 
+
+
 class UpdateReviewSerializer(serializers.Serializer):
     review_id = serializers.IntegerField()
     rating = serializers.IntegerField()
+
+
+
+
+class BooksGenreSerializer(serializers.Serializer):
+    genre = serializers.CharField()
+    
+    
+    
+
+class SuggestBooksSerializer(serializers.Serializer):
+    genre = serializers.CharField()
+
+
+
+
+
