@@ -10,9 +10,9 @@ from . import models, serializers
 
 
 @api_view(['GET'])
-def reviews_list(request):
+def books_list(request):
     '''
-        this class is just used to check list of review to see changes made by different methods I'm using
+        this api returns all books exist in database
     '''
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM books_books")
